@@ -1,74 +1,103 @@
-# Atlassian Log Exporter
+# Atlassian Admin API Event Log Exporter
 
-This project is a Go application that exports logs from Atlassian Jira using the Jira API. It fetches audit records and saves the state to resume from the last fetched record.
-It is designed to be runned from systemd timer so it will log all events directlry into journalctl.
+This Go application fetches events from the Atlassian Admin API, processes them, and logs the results. It supports pagination, rate limiting, and state persistence.
+
+## Features
+
+- Fetches events from the Atlassian Admin API
+- Supports custom date ranges for event retrieval
+- Handles API rate limiting
+- Logs events to console and optionally to a file
+- Persists the last processed event date to resume from where it left off
+- Configurable via command-line flags and environment variables
 
 ## Prerequisites
 
-- Go 1.16 or higher
-- Jira API credentials (email, token, and endpoint)
+- Go 1.x or higher
+- Atlassian Admin API Token
+- Atlassian Organization ID
 
 ## Installation
 
 1. Clone the repository:
 
-    ```sh
-    git clone https://github.com/yourusername/atlassian_log_exporter.git
-    cd atlassian_log_exporter
-    ```
+   ```sh
+   git clone https://github.com/m1keru/atlassian_log_exporter.git
+   ```
 
-2. Install dependencies:
+2. Navigate to the project directory:
 
-    ```sh
-    go mod tidy
-    ```
+   ```sh
+   cd atlassian_log_exporter
+   ```
 
-3. Build binary:
+3. Install dependencies:
 
-    ```sh
-    go build .
-    ```
+   ```sh
+   go mod tidy
+   ```
+
+4. Build:
+
+   ```sh
+   go build
+   ```
 
 ## Usage
 
-1. Set the required environment variables:
-
-    ```sh
-    export JIRA_API_EMAIL=your-email@example.com
-    export JIRA_API_TOKEN=your-api-token
-    export JIRA_API_ENDPOINT=https://your-domain.atlassian.net
-    ```
-
-2. Run the application:
-
-    ```sh
-    go run main.go
-    ```
-
-3. Optional flags:
-    - `-jira_api_email`: Jira API Email (can be set with `JIRA_API_EMAIL` env variable)
-    - `-jira_api_token`: Jira API Token (can be set with `JIRA_API_TOKEN` env variable)
-    - `-jira_api_endpoint`: Jira API Endpoint (can be set with `JIRA_API_ENDPOINT` env variable)
-    - `-debug`: Enable debug mode
-
-### Example
+Run the application with the following command:
 
 ```sh
-./atlassian_log_exporter -debug
+./atlassian_log_exporter --help
 ```
 
-### Logging
+### Flags
 
-The application uses `zap` for logging. Logs are printed to the console. In debug mode, more detailed logs are provided.
+- `-api_user_agent`: API User Agent (default "curl/7.54.0")
+- `-api_token`: Atlassian Admin API Token (can also be set via ATLASSIAN_ADMIN_API_TOKEN environment variable)
+- `-from`: (Optional) From date (RFC3339 format)
+- `-org_id`: Organization ID (can also be set via ATLASSIAN_ORGID environment variable)
+- `-log-to-file`: (Optional) Enable logging to file
+- `-log-file`: (Optional) Path to log file (default "log.txt")
+- `-debug`: Enable debug mode
+- `-query`: Query to filter the events
+- `-sleep`: Sleep time in milliseconds between requests (default 200)
 
-### State Management
+### Environment Variables
 
-The application saves its state in a JSON file (`jira_state.json`) to resume fetching logs from where it left off. If the state file is not found, it starts from the beginning.
+- `ATLASSIAN_ADMIN_API_TOKEN`: Atlassian Admin API Token
+- `ATLASSIAN_ORGID`: Atlassian Organization ID
 
-### Contributing
+## Example
 
-Contributions are welcome! Please open an issue or submit a pull request.
+```sh
+./atlassian_log_exporter -api_token=your_api_token -org_id=your_org_id -from=2023-09-01T00:00:00Z -log-to-file -debug
+```
 
-### License
+or
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+```sh
+ATLASSIAN_ADMIN_API_TOKEN=123 ATLASSIAN_ORGID=123-123-123 ./atlassian_log_exporter
+```
+
+This command will fetch events from September 1, 2023, log the results to both console and file, and enable debug mode.
+
+## State Persistence
+
+The application saves the timestamp of the last processed event in a file named `jira_state.json`. This allows the application to resume from where it left off in subsequent runs.
+
+## Error Handling
+
+The application handles various error scenarios, including API rate limiting. When the rate limit is exceeded, it will wait for the specified time before retrying.
+
+## Logging
+
+Logs are output to the console by default. If the `-log-to-file` flag is set, logs will also be written to the specified file (default: "log.txt").
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## License
+
+Apache License Version 2.0, January 2004
